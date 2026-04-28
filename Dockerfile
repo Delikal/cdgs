@@ -5,13 +5,33 @@ ENV PATH=/opt/conda/bin:$PATH
 ENV TCNN_CUDA_ARCHITECTURES=89
 ENV TORCH_CUDA_ARCH_LIST="8.9"
 ENV COLMAP_USE_GPU=1
+ENV COLMAP_CUDA_ARCHITECTURES=89
 ENV QT_QPA_PLATFORM=offscreen
+ARG COLMAP_VERSION=3.9.1
+ARG COLMAP_CUDA_ARCHITECTURES=89
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git wget curl ca-certificates build-essential cmake ninja-build ffmpeg \
-    colmap sqlite3 rsync \
+    sqlite3 rsync \
+    libboost-program-options-dev libboost-graph-dev libboost-system-dev \
+    libeigen3-dev libflann-dev libfreeimage-dev libmetis-dev \
+    libopenimageio-dev openimageio-tools libblas-dev liblapack-dev \
+    libgoogle-glog-dev libgflags-dev libgtest-dev libgmock-dev libsqlite3-dev libglew-dev \
+    qtbase5-dev libqt5opengl5-dev libcgal-dev libceres-dev libsuitesparse-dev \
+    libcurl4-openssl-dev libssl-dev \
     libgl1 libglib2.0-0 libxrender1 libxext6 libsm6 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --branch "$COLMAP_VERSION" --depth 1 https://github.com/colmap/colmap.git /tmp/colmap && \
+    cmake -S /tmp/colmap -B /tmp/colmap/build -GNinja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr/local \
+      -DCUDA_ENABLED=ON \
+      -DGUI_ENABLED=OFF \
+      -DCMAKE_CUDA_ARCHITECTURES="$COLMAP_CUDA_ARCHITECTURES" && \
+    cmake --build /tmp/colmap/build --target install --parallel "$(nproc)" && \
+    rm -rf /tmp/colmap && \
+    colmap -h >/dev/null
 
 RUN wget -qO /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh && \
     bash /tmp/miniforge.sh -b -p /opt/conda && \

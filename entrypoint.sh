@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INPUT_DIR="${INPUT_DIR:-/data/input}"
-OUTPUT_DIR="${OUTPUT_DIR:-/data/output}"
+DATASET_DIR="${DATASET_DIR:-${INPUT_DIR:-/workspace/dataset}}"
+INPUT_DIR="${INPUT_DIR:-$DATASET_DIR}"
+OUTPUT_DIR="${OUTPUT_DIR:-$DATASET_DIR/dn-splatter}"
 IMAGE_DIR="${IMAGE_DIR:-$INPUT_DIR/images}"
 METHOD="${METHOD:-dn-splatter}"
 DATA_PARSER="${DATA_PARSER:-coolermap}"
 STEPS="${STEPS:-4000}"
 EXPERIMENT_NAME="${EXPERIMENT_NAME:-dnsplat_run}"
-DOWNSCALE_FACTOR="${DOWNSCALE_FACTOR:-4}"
+DOWNSCALE_FACTOR="${DOWNSCALE_FACTOR:-2}"
 DEPTH_ENCODER="${DEPTH_ENCODER:-vits}"
 
 RUN_COLMAP="${RUN_COLMAP:-auto}"              # auto | always | never
@@ -17,6 +18,13 @@ COLMAP_OVERLAP="${COLMAP_OVERLAP:-10}"
 COLMAP_SINGLE_CAMERA="${COLMAP_SINGLE_CAMERA:-1}"
 COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
 COLMAP_WORK_DIR="${COLMAP_WORK_DIR:-$INPUT_DIR/colmap_work}"
+COLMAP_USE_GPU="${COLMAP_USE_GPU:-1}"
+COLMAP_GPU_INDEX="${COLMAP_GPU_INDEX:--1}"
+COLMAP_MAX_FEATURES="${COLMAP_MAX_FEATURES:-8192}"
+COLMAP_MAX_IMAGE_SIZE="${COLMAP_MAX_IMAGE_SIZE:-2200}"
+COLMAP_NUM_THREADS="${COLMAP_NUM_THREADS:-2}"
+COLMAP_MIN_NUM_MATCHES="${COLMAP_MIN_NUM_MATCHES:-15}"
+COLMAP_INIT_MIN_TRI_ANGLE="${COLMAP_INIT_MIN_TRI_ANGLE:-1.5}"
 COLMAP_SPARSE_DIR="$INPUT_DIR/colmap/sparse/0"
 LEGACY_SPARSE_DIR="$INPUT_DIR/sparse/0"
 
@@ -24,7 +32,28 @@ AUTO_MONO_DEPTH="${AUTO_MONO_DEPTH:-1}"
 AUTO_ALIGN_DEPTH="${AUTO_ALIGN_DEPTH:-1}"
 AUTO_SFM_DEPTH="${AUTO_SFM_DEPTH:-1}"
 
-mkdir -p "$OUTPUT_DIR"
+TRAIN_OUTPUT_DIR="${TRAIN_OUTPUT_DIR:-$OUTPUT_DIR/ns_outputs}"
+EXPORT_OUTPUT_DIR="${EXPORT_OUTPUT_DIR:-$OUTPUT_DIR/export}"
+RUN_EXPORT="${RUN_EXPORT:-1}"
+EXPORT_ON_INTERRUPT="${EXPORT_ON_INTERRUPT:-0}"
+EXPORT_TIMEOUT="${EXPORT_TIMEOUT:-0}"
+EXPORT_GAUSSIAN_SPLAT="${EXPORT_GAUSSIAN_SPLAT:-1}"
+EXPORT_TSDF="${EXPORT_TSDF:-1}"
+EXPORT_GS_MESH="${EXPORT_GS_MESH:-0}"
+DEPTH_MODE="${DEPTH_MODE:-mono}"
+LOAD_NORMALS="${LOAD_NORMALS:-False}"
+LOAD_PCD_NORMALS="${LOAD_PCD_NORMALS:-False}"
+TRAIN_COLMAP_PATH="${TRAIN_COLMAP_PATH:-colmap/sparse/0}"
+TRAIN_IMAGES_PATH="${TRAIN_IMAGES_PATH:-$(basename "$IMAGE_DIR")}"
+LOAD_3D_POINTS="${LOAD_3D_POINTS:-True}"
+USE_DEPTH_LOSS="${USE_DEPTH_LOSS:-True}"
+DEPTH_LOSS_TYPE="${DEPTH_LOSS_TYPE:-PearsonDepth}"
+DEPTH_LAMBDA="${DEPTH_LAMBDA:-0.2}"
+PEARSON_LAMBDA="${PEARSON_LAMBDA:-0.2}"
+USE_NORMAL_LOSS="${USE_NORMAL_LOSS:-False}"
+NORMAL_SUPERVISION="${NORMAL_SUPERVISION:-depth}"
+
+mkdir -p "$INPUT_DIR" "$OUTPUT_DIR"
 
 source /opt/conda/etc/profile.d/conda.sh
 conda activate nerfstudio
@@ -103,7 +132,7 @@ run_colmap_pipeline() {
   fi
 
   echo "==> Spouštím COLMAP pipeline z: $IMAGE_DIR"
-  echo "==> Matcher: $COLMAP_MATCHER, single_camera=$COLMAP_SINGLE_CAMERA, camera_model=$COLMAP_CAMERA_MODEL"
+  echo "==> Matcher: $COLMAP_MATCHER, single_camera=$COLMAP_SINGLE_CAMERA, camera_model=$COLMAP_CAMERA_MODEL, gpu=$COLMAP_USE_GPU, gpu_index=$COLMAP_GPU_INDEX"
 
   rm -rf "$COLMAP_WORK_DIR"
   mkdir -p "$COLMAP_WORK_DIR/sparse"
@@ -116,21 +145,24 @@ run_colmap_pipeline() {
     --ImageReader.single_camera "$COLMAP_SINGLE_CAMERA" \
     --ImageReader.camera_model "$COLMAP_CAMERA_MODEL" \
     --SiftExtraction.use_gpu "$COLMAP_USE_GPU" \
-    --SiftExtraction.max_num_features "${COLMAP_MAX_FEATURES:-8192}" \
-    --SiftExtraction.max_image_size "${COLMAP_MAX_IMAGE_SIZE:-2200}" \
-    --SiftExtraction.num_threads "${COLMAP_NUM_THREADS:-2}"
+    --SiftExtraction.gpu_index "$COLMAP_GPU_INDEX" \
+    --SiftExtraction.max_num_features "$COLMAP_MAX_FEATURES" \
+    --SiftExtraction.max_image_size "$COLMAP_MAX_IMAGE_SIZE" \
+    --SiftExtraction.num_threads "$COLMAP_NUM_THREADS"
 
   if [ "$COLMAP_MATCHER" = "exhaustive" ]; then
     colmap exhaustive_matcher \
       --database_path "$db" \
       --SiftMatching.use_gpu "$COLMAP_USE_GPU" \
-      --SiftMatching.num_threads "${COLMAP_NUM_THREADS:-2}"
+      --SiftMatching.gpu_index "$COLMAP_GPU_INDEX" \
+      --SiftMatching.num_threads "$COLMAP_NUM_THREADS"
   else
     colmap sequential_matcher \
       --database_path "$db" \
       --SequentialMatching.overlap "$COLMAP_OVERLAP" \
       --SiftMatching.use_gpu "$COLMAP_USE_GPU" \
-      --SiftMatching.num_threads "${COLMAP_NUM_THREADS:-2}"
+      --SiftMatching.gpu_index "$COLMAP_GPU_INDEX" \
+      --SiftMatching.num_threads "$COLMAP_NUM_THREADS"
   fi
 
   colmap mapper \
@@ -140,8 +172,8 @@ run_colmap_pipeline() {
     --Mapper.ba_refine_focal_length 1 \
     --Mapper.ba_refine_principal_point 0 \
     --Mapper.ba_refine_extra_params 1 \
-    --Mapper.min_num_matches "${COLMAP_MIN_NUM_MATCHES:-15}" \
-    --Mapper.init_min_tri_angle "${COLMAP_INIT_MIN_TRI_ANGLE:-1.5}"
+    --Mapper.min_num_matches "$COLMAP_MIN_NUM_MATCHES" \
+    --Mapper.init_min_tri_angle "$COLMAP_INIT_MIN_TRI_ANGLE"
 
   local best
   if ! best="$(find_best_colmap_model "$COLMAP_WORK_DIR/sparse")"; then
@@ -239,29 +271,29 @@ fi
 TRAIN_CMD=(
   ns-train "$METHOD"
   --experiment-name "$EXPERIMENT_NAME"
-  --output-dir "$OUTPUT_DIR/ns_outputs"
+  --output-dir "$TRAIN_OUTPUT_DIR"
   --max-num-iterations "$STEPS"
-  --pipeline.model.use-depth-loss True
-  --pipeline.model.depth-loss-type PearsonDepth
-  --pipeline.model.depth-lambda "${DEPTH_LAMBDA:-0.2}"
-  --pipeline.model.pearson-lambda "${PEARSON_LAMBDA:-0.2}"
-  --pipeline.model.use-normal-loss False
-  --pipeline.model.normal-supervision depth
+  --pipeline.model.use-depth-loss "$USE_DEPTH_LOSS"
+  --pipeline.model.depth-loss-type "$DEPTH_LOSS_TYPE"
+  --pipeline.model.depth-lambda "$DEPTH_LAMBDA"
+  --pipeline.model.pearson-lambda "$PEARSON_LAMBDA"
+  --pipeline.model.use-normal-loss "$USE_NORMAL_LOSS"
+  --pipeline.model.normal-supervision "$NORMAL_SUPERVISION"
   "$DATA_PARSER"
   --data "$INPUT_DIR"
-  --depth-mode mono
-  --load-normals False
-  --load-pcd-normals False
-  --colmap-path colmap/sparse/0
-  --images-path images
-  --downscale-factor 2
-  --load-3D-points True
+  --depth-mode "$DEPTH_MODE"
+  --load-normals "$LOAD_NORMALS"
+  --load-pcd-normals "$LOAD_PCD_NORMALS"
+  --colmap-path "$TRAIN_COLMAP_PATH"
+  --images-path "$TRAIN_IMAGES_PATH"
+  --downscale-factor "$DOWNSCALE_FACTOR"
+  --load-3D-points "$LOAD_3D_POINTS"
 )
 
 export_done=0
 
 find_config() {
-  find "$OUTPUT_DIR/ns_outputs" -name config.yml -type f -printf '%T@ %p\n' \
+  find "$TRAIN_OUTPUT_DIR" -name config.yml -type f -printf '%T@ %p\n' \
     | sort -nr \
     | head -n1 \
     | cut -d' ' -f2-
@@ -274,7 +306,29 @@ has_checkpoint() {
   find "$checkpoint_dir" \( -name "*.ckpt" -o -name "*.pth" \) -type f 2>/dev/null | grep -q .
 }
 
+run_export_cmd() {
+  echo "==> $*"
+  if [ "$EXPORT_TIMEOUT" != "0" ] && command -v timeout >/dev/null 2>&1; then
+    timeout "$EXPORT_TIMEOUT" "$@" || {
+      local status=$?
+      echo "Export command skončil statusem $status: $*"
+      return 0
+    }
+  else
+    "$@" || {
+      local status=$?
+      echo "Export command skončil statusem $status: $*"
+      return 0
+    }
+  fi
+}
+
 do_export() {
+  if [ "$RUN_EXPORT" != "1" ]; then
+    echo "==> Export vypnutý přes RUN_EXPORT=$RUN_EXPORT."
+    return 0
+  fi
+
   if [ "$export_done" = "1" ]; then
     return 0
   fi
@@ -298,43 +352,58 @@ do_export() {
 
   echo "Používám config: $config"
 
-  mkdir -p "$OUTPUT_DIR/export/gaussian_splat" "$OUTPUT_DIR/export/mesh"
-
-  ns-export gaussian-splat \
-    --load-config "$config" \
-    --output-dir "$OUTPUT_DIR/export/gaussian_splat" || true
-
-  ns-export tsdf \
-    --load-config "$config" \
-    --output-dir "$OUTPUT_DIR/export/mesh/tsdf" || true
-
-  if command -v gs-mesh >/dev/null 2>&1; then
-    gs-mesh o3dtsdf \
+  if [ "$EXPORT_GAUSSIAN_SPLAT" = "1" ]; then
+    mkdir -p "$EXPORT_OUTPUT_DIR/gaussian_splat"
+    run_export_cmd ns-export gaussian-splat \
       --load-config "$config" \
-      --output-dir "$OUTPUT_DIR/export/mesh/o3dtsdf" || true
-
-    gs-mesh tsdf \
-      --load-config "$config" \
-      --output-dir "$OUTPUT_DIR/export/mesh/gs_mesh_tsdf" || true
+      --output-dir "$EXPORT_OUTPUT_DIR/gaussian_splat"
   fi
 
-  echo "==> Export hotový: $OUTPUT_DIR/export"
+  if [ "$EXPORT_TSDF" = "1" ]; then
+    mkdir -p "$EXPORT_OUTPUT_DIR/mesh/tsdf"
+    run_export_cmd ns-export tsdf \
+      --load-config "$config" \
+      --output-dir "$EXPORT_OUTPUT_DIR/mesh/tsdf"
+  fi
+
+  if [ "$EXPORT_GS_MESH" = "1" ]; then
+    if command -v gs-mesh >/dev/null 2>&1; then
+      mkdir -p "$EXPORT_OUTPUT_DIR/mesh/o3dtsdf" "$EXPORT_OUTPUT_DIR/mesh/gs_mesh_tsdf"
+      run_export_cmd gs-mesh o3dtsdf \
+        --load-config "$config" \
+        --output-dir "$EXPORT_OUTPUT_DIR/mesh/o3dtsdf"
+
+      run_export_cmd gs-mesh tsdf \
+        --load-config "$config" \
+        --output-dir "$EXPORT_OUTPUT_DIR/mesh/gs_mesh_tsdf"
+    else
+      echo "gs-mesh není dostupný, EXPORT_GS_MESH přeskočen."
+    fi
+  fi
+
+  echo "==> Export hotový: $EXPORT_OUTPUT_DIR"
 }
 
 on_signal() {
-  trap - INT TERM EXIT
+  trap - INT TERM
   echo ""
-  echo "==> Zachycen Ctrl-C / stop. Ukončuji trénink a exportuji poslední checkpoint..."
+  echo "==> Zachycen Ctrl-C / stop. Ukončuji trénink..."
   if [ -n "${TRAIN_PID:-}" ]; then
     kill -INT "$TRAIN_PID" 2>/dev/null || true
     wait "$TRAIN_PID" 2>/dev/null || true
   fi
-  do_export
+
+  if [ "$EXPORT_ON_INTERRUPT" = "1" ]; then
+    echo "==> EXPORT_ON_INTERRUPT=1, exportuji poslední checkpoint..."
+    do_export
+  else
+    echo "==> Export na Ctrl-C přeskočen. Checkpointy zůstávají v: $TRAIN_OUTPUT_DIR"
+  fi
+
   exit 0
 }
 
 trap on_signal INT TERM
-trap do_export EXIT
 
 echo "==> Spouštím:"
 printf ' %q' "${TRAIN_CMD[@]}"
@@ -352,3 +421,5 @@ if [ "$TRAIN_STATUS" -ne 0 ]; then
   echo "Trénink skončil chybou: $TRAIN_STATUS"
   exit "$TRAIN_STATUS"
 fi
+
+do_export
