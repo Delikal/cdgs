@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git wget curl ca-certificates build-essential cmake ninja-build ffmpeg \
     sqlite3 rsync \
     libboost-program-options-dev libboost-graph-dev libboost-system-dev \
+    libboost-filesystem-dev libboost-regex-dev \
     libeigen3-dev libflann-dev libfreeimage-dev libmetis-dev \
     libopenimageio-dev openimageio-tools libblas-dev liblapack-dev \
     libgoogle-glog-dev libgflags-dev libgtest-dev libgmock-dev libsqlite3-dev libglew-dev \
