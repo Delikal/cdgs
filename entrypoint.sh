@@ -185,11 +185,11 @@ run_colmap_pipeline() {
     --database_path "$db" \
     --image_path "$IMAGE_DIR" \
     --ImageReader.camera_model "$COLMAP_CAMERA_MODEL" \
-    --SiftExtraction.use_gpu "$COLMAP_USE_GPU" \
-    --SiftExtraction.gpu_index "$COLMAP_GPU_INDEX" \
+    --FeatureExtraction.use_gpu "$COLMAP_USE_GPU" \
+    --FeatureExtraction.gpu_index "$COLMAP_GPU_INDEX" \
+    --FeatureExtraction.max_image_size "$COLMAP_MAX_IMAGE_SIZE" \
+    --FeatureExtraction.num_threads "$COLMAP_NUM_THREADS" \
     --SiftExtraction.max_num_features "$COLMAP_MAX_FEATURES" \
-    --SiftExtraction.max_image_size "$COLMAP_MAX_IMAGE_SIZE" \
-    --SiftExtraction.num_threads "$COLMAP_NUM_THREADS"
   )
 
   if [ "$single_camera_per_folder" = "1" ]; then
@@ -216,16 +216,16 @@ run_colmap_pipeline() {
   if [ "$COLMAP_MATCHER" = "exhaustive" ]; then
     colmap exhaustive_matcher \
       --database_path "$db" \
-      --SiftMatching.use_gpu "$COLMAP_USE_GPU" \
-      --SiftMatching.gpu_index "$COLMAP_GPU_INDEX" \
-      --SiftMatching.num_threads "$COLMAP_NUM_THREADS"
+      --FeatureMatching.use_gpu "$COLMAP_USE_GPU" \
+      --FeatureMatching.gpu_index "$COLMAP_GPU_INDEX" \
+      --FeatureMatching.num_threads "$COLMAP_NUM_THREADS"
   else
     colmap sequential_matcher \
       --database_path "$db" \
       --SequentialMatching.overlap "$COLMAP_OVERLAP" \
-      --SiftMatching.use_gpu "$COLMAP_USE_GPU" \
-      --SiftMatching.gpu_index "$COLMAP_GPU_INDEX" \
-      --SiftMatching.num_threads "$COLMAP_NUM_THREADS"
+      --FeatureMatching.use_gpu "$COLMAP_USE_GPU" \
+      --FeatureMatching.gpu_index "$COLMAP_GPU_INDEX" \
+      --FeatureMatching.num_threads "$COLMAP_NUM_THREADS"
   fi
 
   local mapper_args=(
