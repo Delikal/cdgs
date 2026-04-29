@@ -72,6 +72,10 @@ need_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1" >&2; exit 1; }
 }
 
+colmap_has_command() {
+  colmap help 2>/dev/null | grep -Eq "(^|[[:space:]])$1([[:space:]]|$)"
+}
+
 points3d_count() {
   local f="$1"
   python - "$f" <<'PY'
@@ -197,6 +201,13 @@ run_colmap_pipeline() {
   "${feature_args[@]}"
 
   if [ "$use_rig" = "1" ]; then
+    if ! colmap_has_command rig_configurator; then
+      echo "Tento COLMAP nemá command 'rig_configurator', takže neumí nový rig workflow." >&2
+      echo "Přebuilduj Docker image s COLMAP >= 3.12, např. aktuální default v Dockerfile: COLMAP_VERSION=3.13.0." >&2
+      echo "Příklad: docker build --no-cache -t cdgs ." >&2
+      exit 1
+    fi
+
     colmap rig_configurator \
       --database_path "$db" \
       --rig_config_path "$rig_config"

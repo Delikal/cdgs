@@ -15,6 +15,8 @@ docker build -t cdgs .
 
 COLMAP se v image builduje ze zdrojáků s CUDA podporou. Běžný Ubuntu balíček `colmap` CUDA podporu typicky nemá, proto se nepoužívá apt balíček. Viz oficiální COLMAP instalace: https://colmap.github.io/install.html
 
+Defaultně se builduje `COLMAP_VERSION=3.13.0`, protože rig workflow používá command `rig_configurator`, který ve starém COLMAP `3.9.1` není.
+
 Výchozí CUDA architektura je `89`. Pro jinou kartu ji změň při buildu:
 
 ```bash
