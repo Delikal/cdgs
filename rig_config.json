@@ -2,11 +2,11 @@
     {
         "cameras": [
             {
-                "image_prefix": "2026042001/119/ls00pri/",
+                "image_prefix": "2026042001/120/ls00pri/",
                 "ref_sensor": true
             },
             {
-                "image_prefix": "2026042001/119/ls01pri/",
+                "image_prefix": "2026042001/120/ls01pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -20,7 +20,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls02pri/",
+                "image_prefix": "2026042001/120/ls02pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -34,7 +34,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls03pri/",
+                "image_prefix": "2026042001/120/ls03pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -48,7 +48,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls04pri/",
+                "image_prefix": "2026042001/120/ls04pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -62,7 +62,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls06pri/",
+                "image_prefix": "2026042001/120/ls06pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -76,7 +76,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls07pri/",
+                "image_prefix": "2026042001/120/ls07pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -90,7 +90,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls08pri/",
+                "image_prefix": "2026042001/120/ls08pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -104,7 +104,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/ls09pri/",
+                "image_prefix": "2026042001/120/ls09pri/",
                 "cam_from_rig_rotation": [
                     1,
                     0,
@@ -118,7 +118,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs00pri/",
+                "image_prefix": "2026042001/120/rs00pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -132,7 +132,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs01pri/",
+                "image_prefix": "2026042001/120/rs01pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -146,7 +146,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs02pri/",
+                "image_prefix": "2026042001/120/rs02pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -160,7 +160,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs03pri/",
+                "image_prefix": "2026042001/120/rs03pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -174,7 +174,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs04pri/",
+                "image_prefix": "2026042001/120/rs04pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -188,7 +188,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs06pri/",
+                "image_prefix": "2026042001/120/rs06pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -202,7 +202,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs07pri/",
+                "image_prefix": "2026042001/120/rs07pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -216,7 +216,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs08pri/",
+                "image_prefix": "2026042001/120/rs08pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
@@ -230,7 +230,7 @@
                 ]
             },
             {
-                "image_prefix": "2026042001/119/rs09pri/",
+                "image_prefix": "2026042001/120/rs09pri/",
                 "cam_from_rig_rotation": [
                     0,
                     0,
