@@ -1,0 +1,248 @@
+[
+    {
+        "cameras": [
+            {
+                "image_prefix": "2026042001/119/ls00pri/",
+                "ref_sensor": true
+            },
+            {
+                "image_prefix": "2026042001/119/ls01pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    0.413,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls02pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    0.826,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls03pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    1.239,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls04pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    1.652,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls06pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    2.478,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls07pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    2.891,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls08pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    3.304,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/ls09pri/",
+                "cam_from_rig_rotation": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0,
+                    3.717,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs00pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    0,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs01pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    0.413,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs02pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    0.826,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs03pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    1.239,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs04pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    1.652,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs06pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    2.478,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs07pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    2.891,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs08pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    3.304,
+                    0
+                ]
+            },
+            {
+                "image_prefix": "2026042001/119/rs09pri/",
+                "cam_from_rig_rotation": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "cam_from_rig_translation": [
+                    0.5,
+                    3.717,
+                    0
+                ]
+            }
+        ]
+    }
+]

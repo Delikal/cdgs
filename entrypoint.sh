@@ -16,7 +16,13 @@ RUN_COLMAP="${RUN_COLMAP:-auto}"              # auto | always | never
 COLMAP_MATCHER="${COLMAP_MATCHER:-sequential}" # sequential | exhaustive
 COLMAP_OVERLAP="${COLMAP_OVERLAP:-10}"
 COLMAP_SINGLE_CAMERA="${COLMAP_SINGLE_CAMERA:-1}"
+COLMAP_SINGLE_CAMERA_PER_FOLDER="${COLMAP_SINGLE_CAMERA_PER_FOLDER:-auto}" # auto | 0 | 1
 COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
+COLMAP_RIG_CONFIG="${COLMAP_RIG_CONFIG:-}" # explicit path, or auto-detects $INPUT_DIR/rig_config.json
+COLMAP_BA_REFINE_SENSOR_FROM_RIG="${COLMAP_BA_REFINE_SENSOR_FROM_RIG:-0}"
+COLMAP_BA_REFINE_FOCAL_LENGTH="${COLMAP_BA_REFINE_FOCAL_LENGTH:-1}"
+COLMAP_BA_REFINE_PRINCIPAL_POINT="${COLMAP_BA_REFINE_PRINCIPAL_POINT:-0}"
+COLMAP_BA_REFINE_EXTRA_PARAMS="${COLMAP_BA_REFINE_EXTRA_PARAMS:-1}"
 COLMAP_WORK_DIR="${COLMAP_WORK_DIR:-$INPUT_DIR/colmap_work}"
 COLMAP_USE_GPU="${COLMAP_USE_GPU:-1}"
 COLMAP_GPU_INDEX="${COLMAP_GPU_INDEX:--1}"
@@ -131,24 +137,70 @@ run_colmap_pipeline() {
     exit 1
   fi
 
+  local rig_config=""
+  if [ -n "$COLMAP_RIG_CONFIG" ]; then
+    rig_config="$COLMAP_RIG_CONFIG"
+  elif [ -f "$INPUT_DIR/rig_config.json" ]; then
+    rig_config="$INPUT_DIR/rig_config.json"
+  fi
+
+  local use_rig=0
+  if [ -n "$rig_config" ]; then
+    if [ ! -f "$rig_config" ]; then
+      echo "COLMAP_RIG_CONFIG ukazuje na neexistující soubor: $rig_config" >&2
+      exit 1
+    fi
+    use_rig=1
+  fi
+
+  local single_camera_per_folder="$COLMAP_SINGLE_CAMERA_PER_FOLDER"
+  if [ "$single_camera_per_folder" = "auto" ]; then
+    if [ "$use_rig" = "1" ]; then
+      single_camera_per_folder=1
+    else
+      single_camera_per_folder=0
+    fi
+  fi
+
   echo "==> Spouštím COLMAP pipeline z: $IMAGE_DIR"
-  echo "==> Matcher: $COLMAP_MATCHER, single_camera=$COLMAP_SINGLE_CAMERA, camera_model=$COLMAP_CAMERA_MODEL, gpu=$COLMAP_USE_GPU, gpu_index=$COLMAP_GPU_INDEX"
+  echo "==> Matcher: $COLMAP_MATCHER, single_camera=$COLMAP_SINGLE_CAMERA, single_camera_per_folder=$single_camera_per_folder, camera_model=$COLMAP_CAMERA_MODEL, gpu=$COLMAP_USE_GPU, gpu_index=$COLMAP_GPU_INDEX"
+  if [ "$use_rig" = "1" ]; then
+    echo "==> COLMAP rig config: $rig_config"
+    if [ "$COLMAP_MATCHER" = "sequential" ]; then
+      echo "==> Poznámka: pro rig datasety může být vhodnější COLMAP_MATCHER=exhaustive nebo vlastní pairs, pokud sequential nespojí dost snímků."
+    fi
+  fi
 
   rm -rf "$COLMAP_WORK_DIR"
   mkdir -p "$COLMAP_WORK_DIR/sparse"
 
   local db="$COLMAP_WORK_DIR/database.db"
 
-  colmap feature_extractor \
+  local feature_args=(
+    colmap feature_extractor
     --database_path "$db" \
     --image_path "$IMAGE_DIR" \
-    --ImageReader.single_camera "$COLMAP_SINGLE_CAMERA" \
     --ImageReader.camera_model "$COLMAP_CAMERA_MODEL" \
     --SiftExtraction.use_gpu "$COLMAP_USE_GPU" \
     --SiftExtraction.gpu_index "$COLMAP_GPU_INDEX" \
     --SiftExtraction.max_num_features "$COLMAP_MAX_FEATURES" \
     --SiftExtraction.max_image_size "$COLMAP_MAX_IMAGE_SIZE" \
     --SiftExtraction.num_threads "$COLMAP_NUM_THREADS"
+  )
+
+  if [ "$single_camera_per_folder" = "1" ]; then
+    feature_args+=(--ImageReader.single_camera_per_folder 1)
+  else
+    feature_args+=(--ImageReader.single_camera "$COLMAP_SINGLE_CAMERA")
+  fi
+
+  "${feature_args[@]}"
+
+  if [ "$use_rig" = "1" ]; then
+    colmap rig_configurator \
+      --database_path "$db" \
+      --rig_config_path "$rig_config"
+  fi
 
   if [ "$COLMAP_MATCHER" = "exhaustive" ]; then
     colmap exhaustive_matcher \
@@ -165,15 +217,23 @@ run_colmap_pipeline() {
       --SiftMatching.num_threads "$COLMAP_NUM_THREADS"
   fi
 
-  colmap mapper \
+  local mapper_args=(
+    colmap mapper
     --database_path "$db" \
     --image_path "$IMAGE_DIR" \
     --output_path "$COLMAP_WORK_DIR/sparse" \
-    --Mapper.ba_refine_focal_length 1 \
-    --Mapper.ba_refine_principal_point 0 \
-    --Mapper.ba_refine_extra_params 1 \
+    --Mapper.ba_refine_focal_length "$COLMAP_BA_REFINE_FOCAL_LENGTH" \
+    --Mapper.ba_refine_principal_point "$COLMAP_BA_REFINE_PRINCIPAL_POINT" \
+    --Mapper.ba_refine_extra_params "$COLMAP_BA_REFINE_EXTRA_PARAMS" \
     --Mapper.min_num_matches "$COLMAP_MIN_NUM_MATCHES" \
     --Mapper.init_min_tri_angle "$COLMAP_INIT_MIN_TRI_ANGLE"
+  )
+
+  if [ "$use_rig" = "1" ]; then
+    mapper_args+=(--Mapper.ba_refine_sensor_from_rig "$COLMAP_BA_REFINE_SENSOR_FROM_RIG")
+  fi
+
+  "${mapper_args[@]}"
 
   local best
   if ! best="$(find_best_colmap_model "$COLMAP_WORK_DIR/sparse")"; then
