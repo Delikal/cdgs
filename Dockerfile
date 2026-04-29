@@ -74,6 +74,8 @@ RUN mkdir -p /opt/depth-anything/checkpoints && \
       "https://huggingface.co/depth-anything/Depth-Anything-V2-Base/resolve/main/depth_anything_v2_vitb.pth?download=true"
 
 COPY generate_depth.py /generate_depth.py
+COPY patches/patch_dn_splatter_align_depth.py /patch_dn_splatter_align_depth.py
+RUN python /patch_dn_splatter_align_depth.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
