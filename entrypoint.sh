@@ -18,6 +18,7 @@ COLMAP_OVERLAP="${COLMAP_OVERLAP:-10}"
 COLMAP_SINGLE_CAMERA="${COLMAP_SINGLE_CAMERA:-1}"
 COLMAP_SINGLE_CAMERA_PER_FOLDER="${COLMAP_SINGLE_CAMERA_PER_FOLDER:-auto}" # auto | 0 | 1
 COLMAP_CAMERA_MODEL="${COLMAP_CAMERA_MODEL:-OPENCV}"
+COLMAP_USE_RIG="${COLMAP_USE_RIG:-auto}" # auto | 0 | 1
 COLMAP_RIG_CONFIG="${COLMAP_RIG_CONFIG:-}" # explicit path, or auto-detects $INPUT_DIR/rig_config.json
 COLMAP_BA_REFINE_SENSOR_FROM_RIG="${COLMAP_BA_REFINE_SENSOR_FROM_RIG:-0}"
 COLMAP_BA_REFINE_FOCAL_LENGTH="${COLMAP_BA_REFINE_FOCAL_LENGTH:-1}"
@@ -144,10 +145,14 @@ run_colmap_pipeline() {
   fi
 
   local rig_config=""
-  if [ -n "$COLMAP_RIG_CONFIG" ]; then
-    rig_config="$COLMAP_RIG_CONFIG"
-  elif [ -f "$INPUT_DIR/rig_config.json" ]; then
-    rig_config="$INPUT_DIR/rig_config.json"
+  if [ "$COLMAP_USE_RIG" != "0" ]; then
+    if [ -n "$COLMAP_RIG_CONFIG" ]; then
+      rig_config="$COLMAP_RIG_CONFIG"
+    elif [ "$COLMAP_USE_RIG" = "1" ] || [ "$COLMAP_USE_RIG" = "auto" ]; then
+      if [ -f "$INPUT_DIR/rig_config.json" ]; then
+        rig_config="$INPUT_DIR/rig_config.json"
+      fi
+    fi
   fi
 
   local use_rig=0
