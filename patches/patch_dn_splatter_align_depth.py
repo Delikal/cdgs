@@ -4,6 +4,11 @@ from pathlib import Path
 path = Path("/opt/dn-splatter/dn_splatter/scripts/align_depth.py")
 text = path.read_text()
 
+text = text.replace(
+    "BATCH_SIZE = 100",
+    "BATCH_SIZE = int(__import__('os').environ.get('ALIGN_DEPTH_BATCH_SIZE', '4'))",
+)
+
 old_alignment_block = '''            # filter out aligned depth and frames not have pose
             sfm_name = [item.name for item in sfm_depth_filenames]
             mono_depth_filenames = [

@@ -37,6 +37,7 @@ LEGACY_SPARSE_DIR="$INPUT_DIR/sparse/0"
 AUTO_MONO_DEPTH="${AUTO_MONO_DEPTH:-1}"
 AUTO_ALIGN_DEPTH="${AUTO_ALIGN_DEPTH:-1}"
 AUTO_SFM_DEPTH="${AUTO_SFM_DEPTH:-1}"
+ALIGN_DEPTH_BATCH_SIZE="${ALIGN_DEPTH_BATCH_SIZE:-4}"
 
 TRAIN_OUTPUT_DIR="${TRAIN_OUTPUT_DIR:-$OUTPUT_DIR/ns_outputs}"
 EXPORT_OUTPUT_DIR="${EXPORT_OUTPUT_DIR:-$OUTPUT_DIR/export}"
@@ -67,6 +68,7 @@ export QT_QPA_PLATFORM=offscreen
 export DISPLAY=
 export PYTHONUNBUFFERED=1
 export DEPTH_ENCODER
+export ALIGN_DEPTH_BATCH_SIZE
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1" >&2; exit 1; }
@@ -325,7 +327,7 @@ generate_sfm_and_aligned_depth() {
     return
   fi
 
-  echo "==> Generuji sfm_depths a aligned mono_depth přes COLMAP pointcloud..."
+  echo "==> Generuji sfm_depths a aligned mono_depth přes COLMAP pointcloud (batch=$ALIGN_DEPTH_BATCH_SIZE)..."
   "${args[@]}"
 }
 
