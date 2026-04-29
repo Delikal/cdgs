@@ -15,6 +15,9 @@ old_alignment_block = '''            # filter out aligned depth and frames not h
 '''
 
 new_alignment_block = '''            # Filter out aligned depths and frames that do not have a COLMAP pose.
+            sfm_depth_filenames = sorted((self.data / Path("sfm_depths")).rglob("*.npy"))
+            mono_depth_filenames = sorted((self.data / Path("mono_depth")).rglob("*.npy"))
+
             def _depth_key(path: Path, root_name: str) -> str:
                 rel = path
                 if root_name in path.parts:
