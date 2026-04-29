@@ -4,6 +4,49 @@ from pathlib import Path
 path = Path("/opt/dn-splatter/dn_splatter/scripts/align_depth.py")
 text = path.read_text()
 
+old_alignment_block = '''            # filter out aligned depth and frames not have pose
+            sfm_name = [item.name for item in sfm_depth_filenames]
+            mono_depth_filenames = [
+                item
+                for item in mono_depth_filenames
+                if "_aligned.npy" not in item.name and str(item.stem) in str(sfm_name)
+            ]
+            assert len(sfm_depth_filenames) == len(mono_depth_filenames)
+'''
+
+new_alignment_block = '''            # Filter out aligned depths and frames that do not have a COLMAP pose.
+            def _depth_key(path: Path, root_name: str) -> str:
+                rel = path
+                if root_name in path.parts:
+                    rel = Path(*path.parts[path.parts.index(root_name) + 1 :])
+                stem = str(rel.with_suffix(""))
+                if stem.endswith("_aligned"):
+                    stem = stem[: -len("_aligned")]
+                return stem
+
+            sfm_by_key = {
+                _depth_key(path, "sfm_depths"): path for path in sfm_depth_filenames
+            }
+            mono_by_key = {
+                _depth_key(path, "mono_depth"): path
+                for path in mono_depth_filenames
+                if "_aligned.npy" not in path.name
+            }
+            common_keys = sorted(set(sfm_by_key) & set(mono_by_key))
+            if not common_keys:
+                raise RuntimeError(
+                    "No matching SfM and mono depth maps found. "
+                    "Check that mono_depth and sfm_depths preserve the same relative image paths."
+                )
+            sfm_depth_filenames = [sfm_by_key[key] for key in common_keys]
+            mono_depth_filenames = [mono_by_key[key] for key in common_keys]
+'''
+
+if old_alignment_block in text:
+    text = text.replace(old_alignment_block, new_alignment_block)
+else:
+    print("Warning: did not patch align_depth main filename pairing block")
+
 start = text.index("def colmap_sfm_points_to_depths(")
 end = text.index("\ndef sdfstudio_grad_descent(", start)
 
@@ -75,8 +118,9 @@ replacement = r'''def colmap_sfm_points_to_depths(
                 depth[vv, uu] = z
 
         depth_img = depth_scale_to_integer_factor * depth
-        out_name = Path(str(im_data.name)).stem
+        out_name = Path(str(im_data.name)).with_suffix("")
         depth_path = output_dir / out_name
+        depth_path.parent.mkdir(parents=True, exist_ok=True)
         save_depth(
             depth=depth_img, depth_path=depth_path, scale_factor=1, verbose=False
         )
@@ -101,7 +145,7 @@ replacement = r'''def colmap_sfm_points_to_depths(
                 print("images are not the right size!")
                 continue
             debug = 0.3 * input_image + 0.7 + overlay
-            out_name_debug = out_name + ".debug.jpg"
+            out_name_debug = Path(str(im_data.name)).with_suffix(".debug.jpg")
             output_path = output_dir / "debug_depth" / out_name_debug
             output_path.parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(str(output_path), debug.astype(np.uint8))  # type: ignore

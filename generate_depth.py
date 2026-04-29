@@ -33,15 +33,17 @@ print(f"Output depth: {OUTPUT_DIR}")
 print(f"Encoder: {encoder}")
 print(f"Device: {DEVICE}")
 
-for img_path in sorted(INPUT_DIR.glob("*")):
+for img_path in sorted(INPUT_DIR.rglob("*")):
     if img_path.suffix.lower() not in [".jpg", ".jpeg", ".png"]:
         continue
 
-    out_path = OUTPUT_DIR / f"{img_path.stem}.npy"
+    rel_path = img_path.relative_to(INPUT_DIR).with_suffix(".npy")
+    out_path = OUTPUT_DIR / rel_path
     if out_path.exists():
         continue
 
-    print(f"Depth: {img_path.name}")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Depth: {img_path.relative_to(INPUT_DIR)}")
 
     img = cv2.imread(str(img_path))
     if img is None:

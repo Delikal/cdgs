@@ -293,11 +293,7 @@ generate_mono_depth() {
   if [ "$AUTO_MONO_DEPTH" != "1" ]; then
     return
   fi
-  if find "$INPUT_DIR/mono_depth" -name "*.npy" -type f 2>/dev/null | grep -q .; then
-    echo "==> mono_depth už existuje, přeskakuji DepthAnythingV2."
-    return
-  fi
-  echo "==> Generuji mono_depth přes DepthAnythingV2 ($DEPTH_ENCODER)..."
+  echo "==> Generuji/chybějící doplňuji mono_depth přes DepthAnythingV2 ($DEPTH_ENCODER)..."
   INPUT_IMAGES="$IMAGE_DIR" \
   OUTPUT_DEPTH="$INPUT_DIR/mono_depth" \
   python /generate_depth.py
