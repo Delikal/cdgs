@@ -50,6 +50,47 @@ if old_alignment_block in text:
 else:
     print("Warning: did not patch align_depth main filename pairing block")
 
+old_closed_form_block = '''                    mask = (sparse_depths > 0.1) & (sparse_depths < 10.0)
+                    scale, shift = compute_scale_and_shift(
+                        mono_depth_tensors, sparse_depths, mask=mask
+                    )
+                    scale = scale.unsqueeze(1).unsqueeze(2)
+                    shift = shift.unsqueeze(1).unsqueeze(2)
+                    depth_aligned = scale * mono_depth_tensors + shift
+                    mse_loss = torch.nn.MSELoss()
+                    avg = mse_loss(depth_aligned[mask], sparse_depths[mask])
+                    CONSOLE.print(
+                        f"[bold yellow]Average depth alignment error for batch depths is: {avg:3f} which is {'good' if avg<0.2 else 'bad'}"
+                    )
+'''
+
+new_closed_form_block = '''                    mask = (sparse_depths > 0.1) & (sparse_depths < 10.0)
+                    scale, shift = compute_scale_and_shift(
+                        mono_depth_tensors, sparse_depths, mask=mask
+                    )
+                    valid_frames = mask.flatten(1).any(dim=1)
+                    scale = torch.where(valid_frames, scale, torch.ones_like(scale))
+                    shift = torch.where(valid_frames, shift, torch.zeros_like(shift))
+                    scale = scale.unsqueeze(1).unsqueeze(2)
+                    shift = shift.unsqueeze(1).unsqueeze(2)
+                    depth_aligned = scale * mono_depth_tensors + shift
+                    if mask.any():
+                        mse_loss = torch.nn.MSELoss()
+                        avg = mse_loss(depth_aligned[mask], sparse_depths[mask])
+                        CONSOLE.print(
+                            f"[bold yellow]Average depth alignment error for batch depths is: {avg:3f} which is {'good' if avg<0.2 else 'bad'}"
+                        )
+                    else:
+                        CONSOLE.print(
+                            "[bold yellow]No sparse depth pixels in this batch; keeping mono depths unaligned."
+                        )
+'''
+
+if old_closed_form_block in text:
+    text = text.replace(old_closed_form_block, new_closed_form_block)
+else:
+    print("Warning: did not patch align_depth closed-form empty-mask handling")
+
 start = text.index("def colmap_sfm_points_to_depths(")
 end = text.index("\ndef sdfstudio_grad_descent(", start)
 
@@ -157,3 +198,34 @@ replacement = r'''def colmap_sfm_points_to_depths(
 '''
 
 path.write_text(text[:start] + replacement + text[end:])
+
+
+dataparser_path = Path("/opt/dn-splatter/dn_splatter/data/coolermap_dataparser.py")
+dataparser_text = dataparser_path.read_text()
+dp_start = dataparser_text.index("    def get_depth_filepaths(self):")
+dp_end = dataparser_text.index("\n    def get_normal_filepaths(self):", dp_start)
+
+dp_replacement = r'''    def get_depth_filepaths(self):
+        # Rig datasets keep depth files in the same relative tree as images.
+        mono_depth_dir = self.config.data / "mono_depth"
+        depth_paths = natsorted([str(path) for path in mono_depth_dir.rglob("*_aligned.npy")])
+        if not depth_paths:
+            CONSOLE.log("Could not find _aligned.npy depths, trying *.npy")
+            depth_paths = natsorted(
+                [
+                    str(path)
+                    for path in mono_depth_dir.rglob("*.npy")
+                    if not path.name.endswith("_aligned.npy")
+                ]
+            )
+        if depth_paths:
+            CONSOLE.log("Found depths ending in *.npy")
+        else:
+            CONSOLE.log("Could not find depths, quitting.")
+            quit()
+        return depth_paths
+'''
+
+dataparser_path.write_text(
+    dataparser_text[:dp_start] + dp_replacement + dataparser_text[dp_end:]
+)
