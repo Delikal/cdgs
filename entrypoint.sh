@@ -187,7 +187,7 @@ run_colmap_pipeline() {
     --ImageReader.camera_model "$COLMAP_CAMERA_MODEL" \
     --FeatureExtraction.use_gpu "$COLMAP_USE_GPU" \
     --FeatureExtraction.gpu_index "$COLMAP_GPU_INDEX" \
-    --FeatureExtraction.max_image_size "$COLMAP_MAX_IMAGE_SIZE" \
+    --SiftExtraction.max_image_size "$COLMAP_MAX_IMAGE_SIZE" \
     --FeatureExtraction.num_threads "$COLMAP_NUM_THREADS" \
     --SiftExtraction.max_num_features "$COLMAP_MAX_FEATURES" \
   )
