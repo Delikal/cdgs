@@ -7,6 +7,8 @@ ENV TORCH_CUDA_ARCH_LIST="8.9"
 ENV COLMAP_USE_GPU=1
 ENV COLMAP_CUDA_ARCHITECTURES=89
 ENV QT_QPA_PLATFORM=offscreen
+ENV PIP_DEFAULT_TIMEOUT=120
+ENV PIP_RETRIES=10
 ARG COLMAP_VERSION=3.13.0
 ARG COLMAP_CUDA_ARCHITECTURES=89
 
@@ -43,12 +45,16 @@ RUN mamba create -n nerfstudio -y python=3.8 && \
 
 SHELL ["conda", "run", "-n", "nerfstudio", "/bin/bash", "-c"]
 
-RUN python -m pip install --upgrade pip setuptools wheel && \
-    pip install torch==2.1.2+cu118 torchvision==0.16.2+cu118 \
-      --extra-index-url https://download.pytorch.org/whl/cu118 && \
-    pip install ninja && \
-    pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch && \
-    pip install nerfstudio
+RUN python -m pip install --upgrade pip setuptools wheel
+
+RUN pip install torch==2.1.2+cu118 torchvision==0.16.2+cu118 \
+      --extra-index-url https://download.pytorch.org/whl/cu118
+
+RUN pip install ninja
+
+RUN pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
+
+RUN pip install nerfstudio
 
 RUN git clone https://github.com/maturk/dn-splatter /opt/dn-splatter && \
     cd /opt/dn-splatter && \
