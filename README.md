@@ -164,6 +164,44 @@ docker run --rm --gpus all \
   cdgs
 ```
 
+### Funkční rig trénink se SfM depth alignmentem
+
+Tahle varianta se osvědčila pro rig dataset: COLMAP běží s rigem, používá konzervativnější `SIMPLE_RADIAL` model, exhaustive matching a potom se z COLMAP sparse point cloudu generují `sfm_depths`, podle kterých se zarovnávají mono depth mapy.
+
+```bash
+docker run --rm --gpus all \
+  -p 7007:7007 \
+  -v "$PWD/dataset:/workspace/dataset" \
+  -e RUN_COLMAP=always \
+  -e COLMAP_USE_RIG=1 \
+  -e COLMAP_MATCHER=exhaustive \
+  -e COLMAP_CAMERA_MODEL=SIMPLE_RADIAL \
+  -e COLMAP_RIG_CONFIG=/workspace/dataset/rig_config.json \
+  -e COLMAP_BA_REFINE_SENSOR_FROM_RIG=0 \
+  -e COLMAP_MIN_NUM_MATCHES=8 \
+  -e COLMAP_INIT_MIN_TRI_ANGLE=0.5 \
+  -e ALIGN_DEPTH_BATCH_SIZE=1 \
+  -e RUN_EXPORT=0 \
+  cdgs
+```
+
+Když už máš dobrý COLMAP model v `dataset/colmap/sparse/0` a chceš jen znovu dopočítat mono/SfM depth alignment a trénink, použij:
+
+```bash
+rm -rf dataset/sfm_depths
+find dataset/mono_depth -name "*_aligned.npy" -delete 2>/dev/null || true
+
+docker run --rm --gpus all \
+  -p 7007:7007 \
+  -v "$PWD/dataset:/workspace/dataset" \
+  -e RUN_COLMAP=never \
+  -e ALIGN_DEPTH_BATCH_SIZE=1 \
+  -e RUN_EXPORT=0 \
+  cdgs
+```
+
+Pro rig dataset nenechávej v `dataset/images` fotky navíc, pokud je nechceš rekonstruovat. `rig_config.json` dataset nefiltruje; pouze říká COLMAPu, které prefixy patří do rigu.
+
 ## Nastavení `ns-train`
 
 Hodnoty, které byly dřív natvrdo v `TRAIN_CMD`, jde přepsat env proměnnými:
@@ -229,6 +267,116 @@ docker run --rm --gpus all \
 ```
 
 Gaussian splat export je `.ply` se splaty a barvami, ne klasický mesh s UV texturami. COLMAP `.ply` je jen sparse point cloud, takže nestačí jako finální vizuální výstup. Klasické texturované OBJ/mesh UV textury tahle pipeline defaultně negeneruje; mesh exporty jsou rekonstrukce z trénovaného modelu.
+
+### Ruční export po tréninku
+
+Najdi poslední trénovací config:
+
+```bash
+CONFIG="$(find dataset/dn-splatter/ns_outputs -name config.yml -type f -printf '%T@ %p\n' \
+  | sort -nr \
+  | head -n1 \
+  | cut -d' ' -f2-)"
+
+echo "$CONFIG"
+```
+
+Export Gaussian splatu:
+
+```bash
+docker run --rm --gpus all \
+  -v "$PWD/dataset:/workspace/dataset" \
+  --entrypoint bash \
+  cdgs -lc "
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate nerfstudio
+    export TORCH_DISABLE_DYNAMO=1
+    export TORCHDYNAMO_DISABLE=1
+
+    ns-export gaussian-splat \
+      --load-config /workspace/${CONFIG} \
+      --output-dir /workspace/dataset/dn-splatter/export/gaussian_splat
+  "
+```
+
+Výstup je `.ply` se splaty, typicky vhodný pro SuperSplat / Gaussian Splat viewer:
+
+```text
+dataset/dn-splatter/export/gaussian_splat/
+```
+
+Rychlý mesh přes Open3D TSDF:
+
+```bash
+docker run --rm --gpus all \
+  -v "$PWD/dataset:/workspace/dataset" \
+  --entrypoint bash \
+  cdgs -lc "
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate nerfstudio
+    export TORCH_DISABLE_DYNAMO=1
+    export TORCHDYNAMO_DISABLE=1
+
+    gs-mesh o3dtsdf \
+      --load-config /workspace/${CONFIG} \
+      --output-dir /workspace/dataset/dn-splatter/export/mesh/o3dtsdf \
+      --voxel-size 0.004 \
+      --sdf-truc 0.02 \
+      --depth-trunc 4
+  "
+```
+
+Pozor: argument se v aktuální `gs-mesh` verzi jmenuje `--sdf-truc`, ne `--sdf-trunc`.
+
+Detailnější Poisson mesh z gaussianů:
+
+```bash
+docker run --rm --gpus all \
+  -v "$PWD/dataset:/workspace/dataset" \
+  --entrypoint bash \
+  cdgs -lc "
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate nerfstudio
+    export TORCH_DISABLE_DYNAMO=1
+    export TORCHDYNAMO_DISABLE=1
+    export OMP_NUM_THREADS=12
+
+    gs-mesh gaussians \
+      --load-config /workspace/${CONFIG} \
+      --output-dir /workspace/dataset/dn-splatter/export/mesh/gaussians_poisson_d13_detail \
+      --min-opacity 0.01 \
+      --down-sample-voxel 0.001 \
+      --outlier-removal True \
+      --std-ratio 3.0 \
+      --poisson-depth 13
+  "
+```
+
+Ještě agresivnější detail, ale s vyšším rizikem šumu a delší dobou běhu:
+
+```bash
+docker run --rm --gpus all \
+  -v "$PWD/dataset:/workspace/dataset" \
+  --entrypoint bash \
+  cdgs -lc "
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate nerfstudio
+    export TORCH_DISABLE_DYNAMO=1
+    export TORCHDYNAMO_DISABLE=1
+    export OMP_NUM_THREADS=12
+
+    gs-mesh gaussians \
+      --load-config /workspace/${CONFIG} \
+      --output-dir /workspace/dataset/dn-splatter/export/mesh/gaussians_poisson_d13_more_detail \
+      --min-opacity 0.003 \
+      --down-sample-voxel 0.0005 \
+      --outlier-removal True \
+      --std-ratio 4.0 \
+      --poisson-depth 13
+  "
+```
+
+TSDF bývá rychlejší, ale může vyhladit tenké větve/listy/plody. Poisson z gaussianů často zachová víc detailu, ale může přidat blány a šum. Marching cubes je dostupný přes `gs-mesh marching`, ale vyšší `--resolution` roste kubicky a pro detailní scény bývá velmi pomalý.
 
 ## Použití existujícího COLMAPu
 
